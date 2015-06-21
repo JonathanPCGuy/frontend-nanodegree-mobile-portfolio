@@ -449,11 +449,12 @@ var resizePizzas = function(size) {
   }
 
   // Iterates through pizza elements on the page and changes their widths
+  // Optimization: changed all to use getElementsByClassName
   function changePizzaSizes(size) {
-    for (var i = 0; i < document.querySelectorAll(".randomPizzaContainer").length; i++) {
-      var dx = determineDx(document.querySelectorAll(".randomPizzaContainer")[i], size);
-      var newwidth = (document.querySelectorAll(".randomPizzaContainer")[i].offsetWidth + dx) + 'px';
-      document.querySelectorAll(".randomPizzaContainer")[i].style.width = newwidth;
+    for (var i = 0; i < document.getElementsByClassName("randomPizzaContainer").length; i++) {
+      var dx = determineDx(document.getElementsByClassName("randomPizzaContainer")[i], size);
+      var newwidth = (document.getElementsByClassName("randomPizzaContainer")[i].offsetWidth + dx) + 'px';
+      document.getElementsByClassName("randomPizzaContainer")[i].style.width = newwidth;
     }
   }
 
@@ -494,6 +495,16 @@ function logAverageFrame(times) {   // times is the array of User Timing measure
   console.log("Average time to generate last 10 frames: " + sum / 10 + "ms");
 }
 
+/*
+var sinArray = [];
+for(var i = 0; i < 5; i++) {
+  sinArray.push
+}*/
+
+// array that hold references to all the pizza elements so we don't have to keep finding them
+// reminds me of a similar method in android...
+var pizzaElements = [];
+
 // The following code for sliding background pizzas was pulled from Ilya's demo found at:
 // https://www.igvita.com/slides/2012/devtools-tips-and-tricks/jank-demo.html
 
@@ -502,10 +513,13 @@ function updatePositions() {
   frame++;
   window.performance.mark("mark_start_frame");
 
-  var items = document.querySelectorAll('.mover');
-  for (var i = 0; i < items.length; i++) {
-    var phase = Math.sin((document.body.scrollTop / 1250) + (i % 5));
-    items[i].style.left = items[i].basicLeft + 100 * phase + 'px';
+  // sinValue is calculated 1 for all pizzas since they are the same value
+  // eliminates layout thrashing
+  //TODO: optimize modus operation
+  var sinValue = Math.sin(document.body.scrollTop / 1250);
+  for (var i = 0; i < pizzaElements.length; i++) {
+    var phase =  sinValue + (i % 5);
+    pizzaElements[i].style.left = pizzaElements[i].basicLeft + 100 * phase + 'px';
   }
 
   // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -521,19 +535,39 @@ function updatePositions() {
 // runs updatePositions on scroll
 window.addEventListener('scroll', updatePositions);
 
+
+//TODO: on page resize add/remove class to make pizzas as moveable
+//that way we
+//
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function() {
   var cols = 8;
   var s = 256;
+  var viewHeight = document.documentElement.clientHeight;
   for (var i = 0; i < 200; i++) {
+    var topPos =  (Math.floor(i / cols) * s);
+    
     var elem = document.createElement('img');
     elem.className = 'mover';
     elem.src = "images/pizza.png";
     elem.style.height = "100px";
     elem.style.width = "73.333px";
     elem.basicLeft = (i % cols) * s;
-    elem.style.top = (Math.floor(i / cols) * s) + 'px';
+    elem.style.top = topPos + "px";
+    // if pizzas are partially visible we still need to add it
+    if (topPos > viewHeight + 100) {
+      elem.classList.add("pizzaVisible");
+    }
     document.querySelector("#movingPizzas1").appendChild(elem);
+    pizzaElements.push(elem);
   }
   updatePositions();
+});
+
+// on window resize add/remove pizzas that should move, and update pizza positions
+window.addEventListener('resize', function () {
+  // we know pizzas may start at max position 8 * 256 = 2048
+  // they can move up to  100 * (sinValue + [0..4]) with sinValue -1..1
+  // so -100 .. 500
+  // so we can use that, along to not mark pizzas as movable that will never been seen no matter how much you scroll
 });
