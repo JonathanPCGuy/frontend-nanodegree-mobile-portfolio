@@ -34,11 +34,6 @@ form {
   width: 256px;
   z-index: -1;
   will-change: transform;
-  display: none;
-}
-
-.pizzaVisible {
-  display: block;
 }
 
 .randomPizzaContainer {

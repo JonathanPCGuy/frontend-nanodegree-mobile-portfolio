@@ -460,8 +460,8 @@ var resizePizzas = function(size) {
 window.performance.mark("mark_start_generating"); // collect timing data
 
 // This for-loop actually creates and appends all of the pizzas when the page loads
+var pizzasDiv = document.getElementById("randomPizzas");
 for (var i = 2; i < 100; i++) {
-  var pizzasDiv = document.getElementById("randomPizzas");
   pizzasDiv.appendChild(pizzaElementGenerator(i));
 }
 
@@ -489,11 +489,6 @@ function logAverageFrame(times) {   // times is the array of User Timing measure
 // reminds me of a similar method in android...
 var pizzaElements = [];
 
-// object that holds some common constants
-var Constants = {
-  columns : 8,
-  columnWidth : 256
-};
 
 // The following code for sliding background pizzas was pulled from Ilya's demo found at:
 // https://www.igvita.com/slides/2012/devtools-tips-and-tricks/jank-demo.html
@@ -508,13 +503,17 @@ function updatePositions() {
   for(var i = 0; i < 5; i++)  {
     phases.push( Math.sin(document.body.scrollTop / 1250 + i % 5));
   }
-  for (var i = 0; i < 8 * rowsShown; i++) {
-    // if a pizza is not visible to the end user don't spend time to move it
-    if(!pizzaElements[i].classList.contains("pizzaVisible")) {
-      continue;
-    }
-    var phaseIndex = i % 5;
-    pizzaElements[i].style.left = pizzaElements[i].basicLeft + 100 * phases[phaseIndex] + 'px';
+  
+  // repeat the first 3 values
+  // this is to perserve the 8 pizza/row look
+  for(var i = 0; i < 3; i++) {
+    phases.push(phases[i]);
+  }
+  var len = pizzaElements.length;
+  for (var i = 0; i < len; i++) {
+    // to preserve the look of 8 pizzas in a row we calculate as if we had 8 pizzas in a row
+    // even if we actually don't
+    pizzaElements[i].style.left = pizzaElements[i].basicLeft + 100 * phases[i % 8] + 'px';
   }
 
   // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -527,50 +526,78 @@ function updatePositions() {
   }
 };
 
-// runs updatePositions on scroll
-window.addEventListener('scroll', updatePositions);
 
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function() {
-  for (var i = 0; i < 200; i++) {
-    var topPos =  (Math.floor(i / Constants.columns) * Constants.columnWidth);
-    var elem = document.createElement('img');
-    elem.className = 'mover';
-    elem.src = "images/pizza.png";
-    elem.style.height = "100px";
-    elem.style.width = "73.333px";
-    elem.basicLeft = (i % Constants.columns) * Constants.columnWidth;
-    elem.style.top = topPos + "px";
-    document.querySelector("#movingPizzas1").appendChild(elem);
-    pizzaElements.push(elem);
-  }
-  markPizzardToBeMoved();
+
+  onWindowResizeEvent();
+  
+  // now attach event listeners, we don't want to execute events before the pizzas are in place
+  // runs updatePositions on scroll
+  window.addEventListener('scroll', updatePositions);
+  
+  // on window resize add/remove pizzas that should move, and update pizza positions
+  // could be optimized more to not do calculations if window size change is below threshold that actually requires a calculation
+  window.addEventListener('resize', onWindowResizeEvent);
 });
 
-// holds how many rows of backgroud pizzas are shown on the screen
-var rowsShown = 0;
+// holds how many rows and columns are shown
+// values will be init below
+var DisplayBounds = {
+  columnsShown : 0,
+  rowsShown: 0,
+  COLUMN_WIDTH : 256,
+  ROW_HEIGHT: 256,
+  MAX_LEFT_OFFSET: 100
+};
   
-function markPizzardToBeMoved() {
+function onWindowResizeEvent() {
   // we know pizzas may start at max position 8 * 256 = 2048
   // they can move up to  100 * (sinValue + [0..4]) with sinValue -1..1
   // so -100 .. 500 difference
   // so we can use that, along to not mark pizzas as movable that will never been seen no matter how much you scroll
-  var width = document.documentElement.clientWidth + 100;
+  var width = document.documentElement.clientWidth + DisplayBounds.MAX_LEFT_OFFSET;
   var height = document.documentElement.clientHeight;
   
-  var columnsShown = Math.floor(width / Constants.columnWidth);
-  rowsShown = (Math.floor(height / 100)) + 1;
+  var redoPizza = false;
   
-  if (columnsShown > Constants.columns) {
-    columnsShown = Constants.columns;
+  var columns = Math.floor(width / DisplayBounds.COLUMN_WIDTH) + 1;
+  var rows = (Math.floor(height / DisplayBounds.ROW_HEIGHT) + 1);
+  if(rows == 0) {
+    rows = 1;
   }
-  for(var i = 0; i < pizzaElements.length; i++) {
-    // turn on all pizzas that can be seen at some point
-    pizzaElements[i].classList.toggle('pizzaVisible', Math.floor(i/8) < rowsShown && (i % 8) <= columnsShown);
-  }
-  updatePositions();
-};
 
-// on window resize add/remove pizzas that should move, and update pizza positions
-// could be optimized more to not do calculations if window size change is below threshold that actually requires a calculation
-window.addEventListener('resize', markPizzardToBeMoved);
+  if (DisplayBounds.columnsShown != columns) {
+    DisplayBounds.columnsShown = columns;
+    redoPizza = true;
+  }
+  
+  if (DisplayBounds.rowsShown != rows) {
+    DisplayBounds.rowsShown = rows;
+    redoPizza = true;
+  }
+
+  if(redoPizza) {
+    if(pizzaElements.length > 0) {
+      var element = undefined;
+      while((element = pizzaElements.pop()) !== undefined) {
+        element.remove();
+      }
+    }
+    var totalPizzas = DisplayBounds.columnsShown * DisplayBounds.rowsShown;
+    console.log(totalPizzas + " background pizzas");
+    for (var i = 0; i < totalPizzas; i++) {
+      var topPos =  (Math.floor(i / DisplayBounds.columnsShown) * DisplayBounds.COLUMN_WIDTH);
+      var elem = document.createElement('img');
+      elem.className = 'mover';
+      elem.src = "images/pizza.png";
+      elem.style.height = "100px";
+      elem.style.width = "73.333px";
+      elem.basicLeft = (i % DisplayBounds.columnsShown) * DisplayBounds.COLUMN_WIDTH;
+      elem.style.top = topPos + "px";
+      document.getElementById("movingPizzas1").appendChild(elem);
+      pizzaElements.push(elem);
+    }
+    updatePositions();
+  }
+};
