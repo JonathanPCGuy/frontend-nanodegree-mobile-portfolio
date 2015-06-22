@@ -503,14 +503,13 @@ function updatePositions() {
   frame++;
   window.performance.mark("mark_start_frame");
 
-  // sinValue is calculated 1 for all pizzas since they are the same value
-  // eliminates layout thrashing
-  //calculate phase values
+  // pre-calculate the 5 phase values
   var phases = [];
   for(var i = 0; i < 5; i++)  {
     phases.push( Math.sin(document.body.scrollTop / 1250 + i % 5));
   }
   for (var i = 0; i < 8 * rowsShown; i++) {
+    // if a pizza is not visible to the end user don't spend time to move it
     if(!pizzaElements[i].classList.contains("pizzaVisible")) {
       continue;
     }
@@ -526,7 +525,7 @@ function updatePositions() {
     var timesToUpdatePosition = window.performance.getEntriesByName("measure_frame_duration");
     logAverageFrame(timesToUpdatePosition);
   }
-}
+};
 
 // runs updatePositions on scroll
 window.addEventListener('scroll', updatePositions);
@@ -534,7 +533,7 @@ window.addEventListener('scroll', updatePositions);
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function() {
   for (var i = 0; i < 200; i++) {
-    var topPos =  (Math.floor(i / Constants.columns) * s);
+    var topPos =  (Math.floor(i / Constants.columns) * Constants.columnWidth);
     var elem = document.createElement('img');
     elem.className = 'mover';
     elem.src = "images/pizza.png";
@@ -546,20 +545,19 @@ document.addEventListener('DOMContentLoaded', function() {
     pizzaElements.push(elem);
   }
   markPizzardToBeMoved();
-  
 });
 
+// holds how many rows of backgroud pizzas are shown on the screen
 var rowsShown = 0;
   
 function markPizzardToBeMoved() {
   // we know pizzas may start at max position 8 * 256 = 2048
   // they can move up to  100 * (sinValue + [0..4]) with sinValue -1..1
-  // so -100 .. 500
+  // so -100 .. 500 difference
   // so we can use that, along to not mark pizzas as movable that will never been seen no matter how much you scroll
-  console.log("window resize event!");
-  var width = document.documentElement.clientWidth - 100;
+  var width = document.documentElement.clientWidth + 100;
   var height = document.documentElement.clientHeight;
-  // turn on all pizzas that can be seen at some point
+  
   var columnsShown = Math.floor(width / Constants.columnWidth);
   rowsShown = (Math.floor(height / 100)) + 1;
   
@@ -567,15 +565,12 @@ function markPizzardToBeMoved() {
     columnsShown = Constants.columns;
   }
   for(var i = 0; i < pizzaElements.length; i++) {
-    pizzaElements[i].classList.toggle("pizzaVisible", Math.floor(i/8) < rowsShown && (i % 8) <= columnsShown);
+    // turn on all pizzas that can be seen at some point
+    pizzaElements[i].classList.toggle('pizzaVisible', Math.floor(i/8) < rowsShown && (i % 8) <= columnsShown);
   }
   updatePositions();
-}
+};
 
 // on window resize add/remove pizzas that should move, and update pizza positions
-// could be optimized more to not do calculations if window size change is below threshold
-// that actually requires a calculation
+// could be optimized more to not do calculations if window size change is below threshold that actually requires a calculation
 window.addEventListener('resize', markPizzardToBeMoved);
-
-
-

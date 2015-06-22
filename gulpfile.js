@@ -10,14 +10,14 @@ gulp.task('minify-css', function() {
   return gulp.src(['css/*.css', '!css/*.min.css'])
     .pipe(minifyCss({compatibility: 'ie8'}))
     .pipe(rename({suffix: '.min'}))
-    .pipe(gulp.dest('dist'));
+    .pipe(gulp.dest('css'));
 });
 
 gulp.task('js-min', function () {
     return gulp.src(['js/*.js', '!js/*.min.js'])
         .pipe(jsmin())
         .pipe(rename({suffix: '.min'}))
-        .pipe(gulp.dest('dist'));
+        .pipe(gulp.dest('js'));
 });
 
 gulp.task('minify-html', function() {
@@ -25,7 +25,7 @@ gulp.task('minify-html', function() {
   return gulp.src('./index-original.html')
     .pipe(minifyHTML())
     .pipe(rename('index.html'))
-    .pipe(gulp.dest('dist'));
+    .pipe(gulp.dest('.'));
 });
 
 gulp.task('default', ['minify-css', 'js-min','minify-html']);

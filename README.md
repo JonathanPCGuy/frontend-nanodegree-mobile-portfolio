@@ -1,6 +1,35 @@
-## TODO: Instructions on using gulp, npm, etc. to build site
+## README
 
+### Regenerating minified files
+Pre-optimized minified version of the css, js, html file for the portfolio site are included. To re-generate them, you need to do the following:
+1. Install the latest version of node (https://nodejs.org/)
+2. Navigate to the contents of this folder, and run npm install
+3. Run gulp
 
+### Running site
+
+Run it via your favorite method (ngrok, github pages, etc.) Note: you should access the site from http link to ensure the fonts load properly.
+
+### Optimization in portfolio site
+1. Compress and optimize image sizes
+2. Inlined css file, save for the print css, since it was all needed (above the fold content)
+3. Move loading of the fonts to the bottom of the page
+4. Minified html, css, js
+
+### Optimization in Pizza
+The following major optimizations were done in the site:
+1. Add will-change:transform css to all pizzas to force them onto different layers
+2. Optimize calculation of the position of the pizzas so that we don't do expensive caluclations over and over again; namely the sin function.
+3. Moved to use percentages instead of manually calculating the exact left position of the background pizzas.
+4. Pizzas that will never be displayed are marked as hidden and do not have the pizzaVisible class, so they are not acted upon when the pizzas are moved and the browser doesn't draw them.
+5. On a window resize event, we will again determine which pizzas to display and process.
+6. For the pizza size slider, we already know the reference size, so there's no need to calculate the difference. Just set a percentage based on the slider position, then loop through
+   all the random pizzas and set the size, instead of constantly querying the dom as we loop through.
+
+####Future improvements
+1. Dynamically add/remove background pizza elements to the exact amount displayed on the screen (instead of loading 200 and flagging them).
+
+## Below is the original README.md contents
 ## Website Performance Optimization portfolio project
 
 Your challenge, if you wish to accept it (and we sure hope you will), is to optimize this online portfolio for speed! In particular, optimize the critical rendering path and make this page render as quickly as possible by applying the techniques you've picked up in the [Critical Rendering Path course](https://www.udacity.com/course/ud884).
